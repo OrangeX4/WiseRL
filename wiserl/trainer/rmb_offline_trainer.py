@@ -28,7 +28,7 @@ class RewardModelBasedOfflineTrainer(OfflineTrainer):
         rm_eval_kwargs: Optional[dict] = None,
         rl_dataset_kwargs: Optional[Sequence[str]] = None,
         rl_dataloader_kwargs: Optional[Sequence[Dict]] = None,
-        rl_steps: int = 1000,
+        rl_steps: int = 1000,  # if rl_steps is 0 or None, only train the reward model
         rl_eval_kwargs: Optional[dict] = None,
         rm_label: bool=False,
         load_rm_path: Optional[str] = None,
@@ -106,32 +106,34 @@ class RewardModelBasedOfflineTrainer(OfflineTrainer):
                 self.algorithm.save_pretrain(self.save_rm_path)
 
         # finally train the rl agent
-        self.logger.info(f"Setting up rl datasets and dataloaders ...")
-        self._rl_datasets = self.setup_datasets(self.rl_dataset_kwargs)
-        if self.rm_label:
-            self.logger.info(f"Relabeling the reward using pretrained reward model ...")
-            self.algorithm.eval()
-            for d in self._rl_datasets:
-                d.relabel_reward(self.algorithm)
-            self.algorithm.train()
-        self._rl_dataloaders, self._rl_dataloaders_iter = self.setup_dataloaders(self._rl_datasets, self.rl_dataloader_kwargs)
-        for step in trange(0, self.rl_steps+1, desc="RL"):
-            batches = [next(d) for d in self._rl_dataloaders_iter]
-            batches = self.algorithm.format_batch(batches)
-            rl_metrics = self.algorithm.train_step(batches, step=step, total_steps=self.rl_steps)
-
-            if step % self.log_freq == 0:
-                self.logger.log_scalars("", rl_metrics, step=step)
-
-            if self.eval_freq and step % self.eval_freq == 0:
+        # if rl_steps is 0 or None, only train the reward model
+        if self.rl_steps is not None and self.rl_steps > 0:
+            self.logger.info(f"Setting up rl datasets and dataloaders ...")
+            self._rl_datasets = self.setup_datasets(self.rl_dataset_kwargs)
+            if self.rm_label:
+                self.logger.info(f"Relabeling the reward using pretrained reward model ...")
                 self.algorithm.eval()
-                eval_metrics = self.rl_evaluate()
-                self.logger.log_scalars("eval", eval_metrics, step=step)
+                for d in self._rl_datasets:
+                    d.relabel_reward(self.algorithm)
                 self.algorithm.train()
+            self._rl_dataloaders, self._rl_dataloaders_iter = self.setup_dataloaders(self._rl_datasets, self.rl_dataloader_kwargs)
+            for step in trange(0, self.rl_steps+1, desc="RL"):
+                batches = [next(d) for d in self._rl_dataloaders_iter]
+                batches = self.algorithm.format_batch(batches)
+                rl_metrics = self.algorithm.train_step(batches, step=step, total_steps=self.rl_steps)
 
-            if self.checkpoint_freq and step % self.checkpoint_freq == 0:
-                checkpoint_metadata = dict(step=step)
-                self.algorithm.save(self.logger.output_dir, f"step_{step}.pt", checkpoint_metadata)
+                if step % self.log_freq == 0:
+                    self.logger.log_scalars("", rl_metrics, step=step)
+
+                if self.eval_freq and step % self.eval_freq == 0:
+                    self.algorithm.eval()
+                    eval_metrics = self.rl_evaluate()
+                    self.logger.log_scalars("eval", eval_metrics, step=step)
+                    self.algorithm.train()
+
+                if self.checkpoint_freq and step % self.checkpoint_freq == 0:
+                    checkpoint_metadata = dict(step=step)
+                    self.algorithm.save(self.logger.output_dir, f"step_{step}.pt", checkpoint_metadata)
 
         # clean up
         checkpoint_metadata = dict(step=step)
