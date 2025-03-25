@@ -1,0 +1,80 @@
+algorithm:
+  class: ClassifierRM
+  reward_reg: 0.0
+  rm_label: true
+
+checkpoint: null
+seed: 0
+name: default
+debug: false
+device: null
+wandb:
+  activate: false
+  entity: null
+  project: null
+
+env: hopper-medium-replay-v2
+env_kwargs:
+env_wrapper:
+env_wrapper_kwargs:
+
+optim:
+  default:
+    class: Adam
+    lr: 0.0003
+
+network:
+  reward:
+    class: EnsembleMLP
+    ensemble_size: 1
+    hidden_dims: [256, 256]
+    reward_act: identity
+
+rm_dataset:
+  - class: IPLComparisonOfflineDataset
+    env: <env>
+    batch_size: 8
+    segment_length: null
+    mode: human
+rm_dataloader:
+  num_workers: 2
+  batch_size: null
+
+rl_dataset:
+  - class: D4RLOfflineDataset
+    env: <env>
+    batch_size: 256
+    mode: transition
+    reward_normalize: true
+rl_dataloader:
+  num_workers: 2
+  batch_size: null
+
+trainer:
+  env_freq: null
+  rm_label: true
+  rm_steps: 1000000
+  rl_steps: 0
+  log_freq: 500
+  profile_freq: 500
+  eval_freq: 5000
+
+rm_eval:
+  function: eval_reward_model
+  eval_dataset_kwargs:
+    class: IPLComparisonOfflineDataset
+    env: <env>
+    batch_size: 64
+    mode: human
+    eval: true
+rl_eval:
+  function: eval_offline
+  num_ep: 10
+  deterministic: true
+
+schedulers:
+  actor:
+    class: CosineAnnealingLR
+    T_max: 1000000
+
+processor: null

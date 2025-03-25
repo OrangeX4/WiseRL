@@ -21,7 +21,7 @@ if __name__ == "__main__":
         logger_config={
             "TensorboardLogger": {},
             "WandbLogger": {**args["wandb"], "config": args, "settings": wandb.Settings(_disable_stats=True)},
-            "CsvLogger": {"activate": args.get("csv", False)}
+            "CsvLogger": {"activate": args.get("csv", True)}
         },
         backup_stdout=True,
         activate=not args["debug"]

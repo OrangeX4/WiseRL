@@ -53,7 +53,7 @@ rl_dataloader:
 trainer:
   env_freq: null
   rm_label: true
-  rm_steps: 200000
+  rm_steps: 1000000
   rl_steps: 0
   log_freq: 500
   profile_freq: 500
