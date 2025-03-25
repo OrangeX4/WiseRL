@@ -3,24 +3,36 @@ import os
 from operator import itemgetter
 from typing import Any, Dict, Optional, Type
 
-import numpy as np
 import torch
 import torch.nn as nn
 
-from wiserl.algorithm.base import Algorithm
 import wiserl.module
-from wiserl.module.actor import DeterministicActor, GaussianActor
+from wiserl.algorithm.oracle_awac import OracleAWAC
+from wiserl.utils.misc import make_target, sync_target
 
 
-class ClassifierRM(Algorithm):
+class ClassifierRM_AWAC(OracleAWAC):
     def __init__(
         self,
         *args,
+        beta: float = 0.3333,
+        max_exp_clip: float = 100.0,
+        discount: float = 0.99,
+        tau: float = 0.005,
+        target_freq: int = 1,
         reward_reg: float = 0.0,
         rm_label: bool = True,
         **kwargs
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            *args,
+            beta=beta,
+            max_exp_clip=max_exp_clip,
+            discount=discount,
+            tau=tau,
+            target_freq=target_freq,
+            **kwargs
+        )
         self.reward_reg = reward_reg
         self.rm_label = rm_label
         self.obs_dim = self.observation_space.shape[0]
@@ -29,7 +41,6 @@ class ClassifierRM(Algorithm):
         self.reward_criterion = torch.nn.BCEWithLogitsLoss(reduction="none")
 
     def setup_network(self, network_kwargs):
-        network = {}
         super().setup_network(network_kwargs)
         reward_act = {
             "identity": nn.Identity(),
@@ -40,8 +51,7 @@ class ClassifierRM(Algorithm):
             output_dim=1,
             **network_kwargs["reward"]
         )
-        network["reward"] = nn.Sequential(reward, reward_act)
-        self.network = nn.ModuleDict(network).to(self.device)
+        self.network["reward"] = nn.Sequential(self.network["encoder"], reward, reward_act)
 
 
     def setup_optimizers(self, optim_kwargs):
@@ -51,13 +61,13 @@ class ClassifierRM(Algorithm):
         reward_kwargs.update(optim_kwargs.get("reward", {}))
         self.optim["reward"] = vars(torch.optim)[reward_kwargs.pop("class")](self.network.reward.parameters(), **reward_kwargs)
 
+    def select_action(self, batch, deterministic: bool=True):
+        return super().select_action(batch, deterministic)
+
     def select_reward(self, batch, deterministic=False):
         obs, action = batch["obs"], batch["action"]
         reward = self.network.reward(torch.concat([obs, action], dim=-1))
         return reward.mean(0).detach()
-    
-    def select_action(self, batch, deterministic: bool=True):
-        raise NotImplementedError
 
     def pretrain_step(self, batches, step: int, total_steps: int) -> Dict:
         batch = batches[0]
@@ -104,7 +114,40 @@ class ClassifierRM(Algorithm):
         return metrics
 
     def train_step(self, batches, step: int, total_steps: int) -> Dict:
-        return {}
+        rl_batch = batches[0]
+        obs, action, next_obs, terminal = itemgetter("obs", "action", "next_obs", "terminal")(rl_batch)
+        terminal = terminal.float()
+        if self.rm_label:
+            reward = itemgetter("reward")(rl_batch)
+        else:
+            with torch.no_grad():
+                reward = self.select_reward({"obs": obs, "action": action}, deterministic=True)
+
+        # compute the loss for actor
+        actor_loss, advantage = self.actor_loss(obs, action)
+        self.optim["actor"].zero_grad()
+        actor_loss.backward()
+        self.optim["actor"].step()
+
+        # compute the loss for q, offset by 1
+        q_loss, q_pred = self.q_loss(obs, action, next_obs, reward, terminal)
+        self.optim["critic"].zero_grad()
+        q_loss.backward()
+        self.optim["critic"].step()
+
+        for _, scheduler in self.schedulers.items():
+            scheduler.step()
+
+        if step % self.target_freq == 0:
+            sync_target(self.network.critic, self.target_network.critic, tau=self.tau)
+
+        metrics = {
+            "loss/q_loss": q_loss.item(),
+            "loss/actor_loss": actor_loss.item(),
+            "misc/q_pred": q_pred.mean().item(),
+            "misc/advantage": advantage.mean().item()
+        }
+        return metrics
 
     def load_pretrain(self, path):
         for attr in ["reward"]:

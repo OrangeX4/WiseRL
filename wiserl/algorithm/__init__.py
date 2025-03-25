@@ -4,6 +4,8 @@ from wiserl.algorithm.rm.classifier_rm import ClassifierRM
 
 from wiserl.algorithm.bt.bt_awac import BTAWAC
 from wiserl.algorithm.bt.bt_iql import BTIQL
+from wiserl.algorithm.cls.cls_awac import ClassifierRM_AWAC
+from wiserl.algorithm.cls.cls_iql import ClassifierRM_IQL
 from wiserl.algorithm.cpl import CPL
 from wiserl.algorithm.cpl_kl import CPL_KL
 from wiserl.algorithm.hpl.hpl import HindsightPreferenceLearning
