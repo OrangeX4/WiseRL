@@ -38,19 +38,22 @@ class IPLComparisonOfflineDataset(torch.utils.data.IterableDataset):
         batch_size: Optional[int] = None,
         capacity: Optional[int] = None,
         mode: str = "human",
+        reward_scale: float = 0.01,  # only used in soft mode
         eval: bool = False,
     ):
         super().__init__()
         assert env in DATASET_PATH.keys(), f"Env {env} not registered for PT dataset"
-        assert mode in {"human", "script"}, "Supported modes for IPLComparisonOfflineDataset: {human, script}"
+        assert mode in {"human", "script", "soft"}, "Supported modes for IPLComparisonOfflineDataset: {human, script, soft}"
 
         self.env_name = env
         self.mode = mode
         self.batch_size = 1 if batch_size is None else batch_size
         self.segment_length = segment_length
         self.eval = eval
+        self.reward_scale = reward_scale
         train_or_eval = "eval" if eval else "train"
-        path = f"{DATASET_PATH[self.env_name]}_{self.mode}_{train_or_eval}.npz"
+        mode_name = mode if mode != "soft" else "human"
+        path = f"{DATASET_PATH[self.env_name]}_{mode_name}_{train_or_eval}.npz"
         with open(path, "rb") as f:
             data = np.load(f)
             data = utils.nest_dict(data)
@@ -76,18 +79,24 @@ class IPLComparisonOfflineDataset(torch.utils.data.IterableDataset):
         else:
             start_idx, end_idx = 0, self.data_segment_length
         batch = {
-            "obs_1": self.data["obs_1"][idx, start_idx:end_idx],
-            "obs_2": self.data["obs_2"][idx, start_idx:end_idx],
-            "action_1": self.data["action_1"][idx, start_idx:end_idx],
-            "action_2": self.data["action_2"][idx, start_idx:end_idx],
-            "script_reward_1": self.data["script_reward_1"][idx, start_idx:end_idx],
-            "script_reward_2": self.data["script_reward_2"][idx, start_idx:end_idx], 
-            "label": self.data["label"][idx][:, None],
+            "obs_1": self.data["obs_1"][idx, start_idx:end_idx],   # like (8, 100, 11)
+            "obs_2": self.data["obs_2"][idx, start_idx:end_idx],   # like (8, 100, 11)
+            "action_1": self.data["action_1"][idx, start_idx:end_idx],   # like (8, 100, 3)
+            "action_2": self.data["action_2"][idx, start_idx:end_idx],   # like (8, 100, 3)
+            "script_reward_1": self.data["script_reward_1"][idx, start_idx:end_idx][:, :, None],    # like (8, 100, 1)
+            "script_reward_2": self.data["script_reward_2"][idx, start_idx:end_idx][:, :, None],    # like (8, 100, 1)
+            "label": self.data["label"][idx][:, None],   # like (8, 1)
             "terminal_1": np.zeros([len(idx), end_idx-start_idx, 1], dtype=np.float32) \
-                if is_batch else np.zeros([end_idx-start_idx, 1], dtype=np.float32),
+                if is_batch else np.zeros([end_idx-start_idx, 1], dtype=np.float32),   # like (8, 100, 1)
             "terminal_2": np.zeros([len(idx), end_idx-start_idx, 1], dtype=np.float32) \
-                if is_batch else np.zeros([end_idx-start_idx, 1], dtype=np.float32)
+                if is_batch else np.zeros([end_idx-start_idx, 1], dtype=np.float32),   # like (8, 100, 1)
         }
+        # post process for soft mode
+        if self.mode == "soft":
+            r1, r2 = self.reward_scale * batch["script_reward_1"], self.reward_scale * batch["script_reward_2"]
+            logits = r2.sum(axis=1) - r1.sum(axis=1)
+            prob = 1 / (1 + np.exp(-logits))
+            batch["label"] = np.random.binomial(1, prob, size=batch["label"].shape).astype(np.float32)
         return batch
 
     def __iter__(self):

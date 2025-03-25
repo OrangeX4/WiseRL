@@ -27,7 +27,7 @@ class OracleRM(Algorithm):
         self.reward_criterion = torch.nn.BCEWithLogitsLoss(reduction="none")
 
     def select_reward(self, batch, deterministic=False):
-        return torch.concat([batch["script_reward_1"], batch["script_reward_2"]], dim=0).unsqueeze(-1).detach()
+        return torch.concat([batch["script_reward_1"], batch["script_reward_2"]], dim=0).detach()
     
     def select_action(self, batch, deterministic: bool=True):
         raise NotImplementedError
@@ -35,7 +35,7 @@ class OracleRM(Algorithm):
     @torch.no_grad()
     def pretrain_step(self, batches, step: int, total_steps: int) -> Dict:
         batch = batches[0]
-        r1, r2 = batch['script_reward_1'].unsqueeze(0).unsqueeze(-1), batch['script_reward_2'].unsqueeze(0).unsqueeze(-1)
+        r1, r2 = batch['script_reward_1'].unsqueeze(0), batch['script_reward_2'].unsqueeze(0)
         all_reward = torch.concat([r1, r2], dim=0)
         logits = r2.sum(dim=2) - r1.sum(dim=2)
         labels = batch["label"].float().unsqueeze(0).expand_as(logits)
