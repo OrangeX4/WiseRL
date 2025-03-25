@@ -1,6 +1,5 @@
 algorithm:
-  class: BT
-  reward_reg: 0.0
+  class: OracleRM
   rm_label: true
 
 checkpoint: null
@@ -18,24 +17,21 @@ env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
 
+mode: human
+
 optim:
   default:
     class: Adam
     lr: 0.0003
 
 network:
-  reward:
-    class: EnsembleMLP
-    ensemble_size: 1
-    hidden_dims: [256, 256]
-    reward_act: identity
 
 rm_dataset:
   - class: IPLComparisonOfflineDataset
     env: <env>
     batch_size: 8
     segment_length: null
-    mode: script
+    mode: <mode>
 rm_dataloader:
   num_workers: 2
   batch_size: null
@@ -65,7 +61,7 @@ rm_eval:
     class: IPLComparisonOfflineDataset
     env: <env>
     batch_size: 64
-    mode: script
+    mode: <mode>
     eval: true
 rl_eval:
   function: eval_offline

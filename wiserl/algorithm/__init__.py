@@ -1,6 +1,7 @@
 # Reward model only
 from wiserl.algorithm.rm.bt import BT
 from wiserl.algorithm.rm.classifier_rm import ClassifierRM
+from wiserl.algorithm.rm.oracle_rm import OracleRM
 
 from wiserl.algorithm.bt.bt_awac import BTAWAC
 from wiserl.algorithm.bt.bt_iql import BTIQL

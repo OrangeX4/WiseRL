@@ -18,6 +18,8 @@ env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
 
+mode: human
+
 optim:
   default:
     class: Adam
@@ -35,7 +37,7 @@ rm_dataset:
     env: <env>
     batch_size: 8
     segment_length: null
-    mode: human
+    mode: <mode>
 rm_dataloader:
   num_workers: 2
   batch_size: null
@@ -65,7 +67,7 @@ rm_eval:
     class: IPLComparisonOfflineDataset
     env: <env>
     batch_size: 64
-    mode: human
+    mode: <mode>
     eval: true
 rl_eval:
   function: eval_offline
