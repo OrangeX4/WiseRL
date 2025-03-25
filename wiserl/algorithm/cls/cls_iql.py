@@ -104,7 +104,13 @@ class ClassifierRM_IQL(OracleIQL):
         reg_loss = (all_reward**2).mean()
         
         with torch.no_grad():
+            win_mask = (all_labels > 0.5).unsqueeze(-1)
+            lose_mask = (all_labels <= 0.5).unsqueeze(-1)
             reward_accuracy = ((logits > 0) == torch.round(all_labels)).float().mean()
+            win_reward_accuracy = ((logits > 0) == torch.round(all_labels))[win_mask.squeeze(-1)].float().mean()
+            lose_reward_accuracy = ((logits > 0) == torch.round(all_labels))[lose_mask.squeeze(-1)].float().mean()
+            win_reward = reward * win_mask
+            lose_reward = reward * lose_mask
 
         self.optim["reward"].zero_grad()
         (reward_loss + self.reward_reg * reg_loss).backward()
@@ -114,7 +120,14 @@ class ClassifierRM_IQL(OracleIQL):
             "loss/reward_loss": reward_loss.item(),
             "loss/reward_reg_loss": reg_loss.item(),
             "misc/reward_acc": reward_accuracy.item(),
-            "misc/reward_value": all_reward.mean().item()
+            "misc/win_reward_accuracy": win_reward_accuracy.item(),
+            "misc/lose_reward_accuracy": lose_reward_accuracy.item(),
+            "misc/reward_mean": all_reward.mean().item(),
+            "misc/reward_std": all_reward.std().item(),
+            "misc/win_reward_mean": win_reward.mean().item(),
+            "misc/win_reward_std": win_reward.std().item(),
+            "misc/lose_reward_mean": lose_reward.mean().item(),
+            "misc/lose_reward_std": lose_reward.std().item(),
         }
         return metrics
 
