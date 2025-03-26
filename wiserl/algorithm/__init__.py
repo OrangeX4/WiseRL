@@ -2,9 +2,11 @@
 from wiserl.algorithm.rm.bt import BT
 from wiserl.algorithm.rm.classifier_rm import ClassifierRM
 from wiserl.algorithm.rm.oracle_rm import OracleRM
+from wiserl.algorithm.rm.dal_rm import DAL_RM
 
 from wiserl.algorithm.bt.bt_awac import BTAWAC
 from wiserl.algorithm.bt.bt_iql import BTIQL
+from wiserl.algorithm.dal.dal_iql import DAL_IQL
 from wiserl.algorithm.cls.cls_awac import ClassifierRM_AWAC
 from wiserl.algorithm.cls.cls_iql import ClassifierRM_IQL
 from wiserl.algorithm.cpl import CPL
