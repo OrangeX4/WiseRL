@@ -1,4 +1,5 @@
 import itertools
+from operator import itemgetter
 from typing import Any, Dict, Optional, Type
 
 import torch
@@ -21,6 +22,7 @@ class OracleIQL(Algorithm):
         discount: float = 0.99,
         tau: float = 0.005,
         target_freq: int = 1,
+        const_reward: Optional[float] = None,
         **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -30,6 +32,7 @@ class OracleIQL(Algorithm):
         self.target_freq = target_freq
         self.discount = discount
         self.tau = tau
+        self.const_reward = const_reward
 
     def setup_network(self, network_kwargs):
         network = {}
@@ -109,12 +112,32 @@ class OracleIQL(Algorithm):
 
     def train_step(self, batches, step:int, total_steps: int):
         batch, *_ = batches
-        obs = torch.cat([batch["obs_1"], batch["obs_2"]], dim=0)  # (B, S+1)
-        action = torch.cat([batch["action_1"], batch["action_2"]], dim=0)  # (B, S+1)
-        reward = torch.cat([batch["reward_1"], batch["reward_2"]], dim=0)
-        terminal = torch.cat([batch["terminal_1"], batch["terminal_2"]], dim=0)
+        if 'obs_1' in batch:
+            # the batch is a preference dataset batch
+            obs = torch.cat([batch["obs_1"], batch["obs_2"]], dim=0)  # (B, S+1)
+            action = torch.cat([batch["action_1"], batch["action_2"]], dim=0)  # (B, S+1)
+            reward = torch.cat([batch["reward_1"], batch["reward_2"]], dim=0)
+            terminal = torch.cat([batch["terminal_1"], batch["terminal_2"]], dim=0)
+            # if we have next_obs
+            if "next_obs_1" in batch:
+                next_obs = torch.cat([batch["next_obs_1"], batch["next_obs_2"]], dim=0)
+            else:
+                obs = obs[:, :-1]
+                action = action[:, :-1]
+                next_obs = obs[:, 1:]
+                reward = reward[:, :-1]
+                terminal = terminal[:, :-1]
+        else:
+            # the batch is a normal offline dataset batch
+            obs, action, next_obs, reward, terminal = itemgetter("obs", "action", "next_obs", "reward", "terminal")(batch)
+        terminal = terminal.float()
+
+        # if const_reward is not None, replace the reward with a constant reward value
+        if self.const_reward is not None:
+            reward = torch.full_like(reward, self.const_reward)
 
         encoded_obs = self.network.encoder(obs)
+        encoded_next_obs = self.network.encoder(next_obs)
 
         with torch.no_grad():
             self.target_network.eval()
@@ -134,13 +157,7 @@ class OracleIQL(Algorithm):
         self.optim["actor"].step()
 
         # compute the loss for q, offset by 1
-        q_loss, q_pred = self.q_loss(
-            encoded_obs[:, :-1].detach(),
-            action[:, :-1],
-            encoded_obs[:, 1:].detach(),
-            reward[:, :-1],
-            terminal[:, :-1]
-        )
+        q_loss, q_pred = self.q_loss(encoded_obs.detach(), action, encoded_next_obs.detach(), reward, terminal)
         self.optim["critic"].zero_grad()
         q_loss.backward()
         self.optim["critic"].step()
