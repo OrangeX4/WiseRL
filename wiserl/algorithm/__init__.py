@@ -7,6 +7,7 @@ from wiserl.algorithm.rm.dal_rm import DAL_RM
 from wiserl.algorithm.bt.bt_awac import BTAWAC
 from wiserl.algorithm.bt.bt_iql import BTIQL
 from wiserl.algorithm.dal.dal_iql import DAL_IQL
+from wiserl.algorithm.dal.dal_awr import DAL_AWR
 from wiserl.algorithm.cls.cls_awac import ClassifierRM_AWAC
 from wiserl.algorithm.cls.cls_iql import ClassifierRM_IQL
 from wiserl.algorithm.cpl import CPL
