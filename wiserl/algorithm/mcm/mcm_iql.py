@@ -108,7 +108,7 @@ class MCM_IQL(OracleIQL):
         labels = batch["label"].float().unsqueeze(0).expand_as(logits)
         reward_loss = self.reward_criterion(logits, labels).sum(0).mean()
         reg_loss = (r1**2).sum(0).mean() + (r2**2).sum(0).mean()
-        entropy_loss = all_entropy.sum(0).mean()
+        entropy_loss = -all_entropy.sum(0).mean()
         with torch.no_grad():
             reward_accuracy = ((logits > 0) == torch.round(labels)).float().mean()
             # Calculate win/lose rewards based on labels
