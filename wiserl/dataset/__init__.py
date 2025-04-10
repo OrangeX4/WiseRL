@@ -1,3 +1,4 @@
+from functools import lru_cache
 # Register dataset classes here
 # from .robomimic_dataset import RobomimicDataset # Awaiting Numba Release
 from wiserl.dataset.cliff_walking_dataset import (
@@ -22,3 +23,22 @@ try:
     from .robomimic_dataset import RobomimicDataset
 except ImportError:
     print("Warning: Could not import RobomimicDataset")
+
+
+@lru_cache(maxsize=None)
+def load_dataset(**kwargs):
+    """Load dataset with caching support.
+    
+    Args:
+        **kwargs: Additional arguments including 'class' parameter
+    Returns:
+        Dataset instance
+    """
+    cls = kwargs.pop("class")
+    ds = globals()[cls](
+        # we dont need observation and action space for the dataset
+        observation_space=None,
+        action_space=None,
+        **kwargs
+    )
+    return ds

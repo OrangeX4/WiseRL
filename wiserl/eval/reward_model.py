@@ -6,7 +6,7 @@ import gym
 import numpy as np
 import torch
 
-import wiserl.dataset
+from wiserl.dataset import load_dataset
 from wiserl.algorithm.base import Algorithm
 
 
@@ -19,12 +19,7 @@ def eval_reward_model(
     rm_eval_loss = []
     rm_eval_acc = []
     kwargs = eval_dataset_kwargs.copy()
-    eval_dataset_class = kwargs.pop("class")
-    eval_dataset = vars(wiserl.dataset)[eval_dataset_class](
-        env.observation_space,
-        env.action_space,
-        **kwargs
-    )
+    eval_dataset = load_dataset(**kwargs)
     for batch in eval_dataset.create_sequential_iter():
         batch = algorithm.format_batch(batch)
         batch["obs"] = torch.concat([batch["obs_1"], batch["obs_2"]], dim=0)

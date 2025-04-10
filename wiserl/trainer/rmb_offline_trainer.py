@@ -11,7 +11,7 @@ import torch
 from tqdm import trange
 from UtilsRL.logger import BaseLogger
 
-import wiserl.dataset
+from wiserl.dataset import load_dataset
 import wiserl.eval
 from wiserl.trainer.offline_trainer import OfflineTrainer
 
