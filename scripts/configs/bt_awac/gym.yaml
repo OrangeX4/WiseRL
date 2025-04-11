@@ -77,9 +77,15 @@ rm_eval:
   eval_dataset_kwargs:
     class: IPLComparisonOfflineDataset
     env: <env>
-    batch_size: 32
-    mode: human
-    eval: false
+    batch_size: 64
+    mode: <mode>
+    eval: true
+  eval_offline_dataset_kwargs:
+    class: D4RLOfflineDataset
+    env: <env>
+    batch_size: 256
+    mode: trajectory
+    reward_normalize: true
 rl_eval:
   function: eval_offline
   num_ep: 10

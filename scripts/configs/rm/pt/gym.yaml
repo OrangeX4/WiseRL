@@ -1,8 +1,8 @@
 algorithm:
-  class: BTAWAC
-  beta: 0.3333
-  max_exp_clip: 100.0
+  class: PT
   reward_reg: 0.0
+  use_weighted_sum: true
+  max_seq_len: 100
   rm_label: true
 
 checkpoint: null
@@ -15,40 +15,35 @@ wandb:
   entity: null
   project: null
 
-env: pen-cloned-v1
+env: hopper-medium-replay-v2
 env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
+
+mode: human
 
 optim:
   default:
     class: Adam
     lr: 0.0003
+  reward:
+    class: AdamW
+    lr: 0.0003
 
 network:
   reward:
-    class: EnsembleMLP
-    ensemble_size: 1
-    hidden_dims: [256, 256, 256]
-    reward_act: identity
-  actor:
-    class: SquashedGaussianActor
-    hidden_dims: [256, 256, 256]
-    reparameterize: false
-    conditioned_logstd: false
-    logstd_min: -5
-    logstd_max: 2
-  critic:
-    class: Critic
-    ensemble_size: 2
-    hidden_dims: [256, 256, 256]
+    num_layers: 3
+    embed_dim: 256
+    pref_embed_dim: 256
+    num_heads: 1
+    reward_act: sigmoid
 
 rm_dataset:
   - class: IPLComparisonOfflineDataset
     env: <env>
-    batch_size: 8
+    batch_size: 64
     segment_length: null
-    mode: human
+    mode: <mode>
 rm_dataloader:
   num_workers: 2
   batch_size: null
@@ -57,8 +52,8 @@ rl_dataset:
   - class: D4RLOfflineDataset
     env: <env>
     batch_size: 256
-    mode: transition
-    reward_normalize: true
+    mode: trajectory
+    segment_length: 20
 rl_dataloader:
   num_workers: 2
   batch_size: null
@@ -66,8 +61,8 @@ rl_dataloader:
 trainer:
   env_freq: null
   rm_label: true
-  rm_steps: 100000
-  rl_steps: 500000
+  rm_steps: 200000
+  rl_steps: 0
   log_freq: 500
   profile_freq: 500
   eval_freq: 5000
@@ -94,6 +89,10 @@ rl_eval:
 schedulers:
   actor:
     class: CosineAnnealingLR
-    T_max: 500000
+    T_max: 1000000
+  reward:
+    warmup_steps: 10000
+    max_steps: 100000
+
 
 processor: null

@@ -51,13 +51,13 @@ class BT(Algorithm):
         reward_kwargs.update(optim_kwargs.get("reward", {}))
         self.optim["reward"] = vars(torch.optim)[reward_kwargs.pop("class")](self.network.reward.parameters(), **reward_kwargs)
 
+    def select_action(self, batch, deterministic: bool=True):
+        raise NotImplementedError
+
     def select_reward(self, batch, deterministic=False):
         obs, action = batch["obs"], batch["action"]
         reward = self.network.reward(torch.concat([obs, action], dim=-1))
         return reward.mean(0).detach()
-    
-    def select_action(self, batch, deterministic: bool=True):
-        raise NotImplementedError
 
     def pretrain_step(self, batches, step: int, total_steps: int) -> Dict:
         batch = batches[0]

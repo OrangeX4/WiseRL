@@ -112,6 +112,31 @@ class D4RLOfflineDataset(torch.utils.data.IterableDataset):
                         "timestep": np.stack([s["timestep"] for s in sample], axis=0),
                     }
 
+    def sample_idx(self, idxs):
+        assert self.mode == "transition" or (self.mode == "trajectory" and self.sample_full), \
+            "sample_idx only supports 'transition' mode or 'trajectory' mode with sample_full=True"
+
+        idxs = np.array(idxs)
+        return {
+            "obs": self.data["obs"][idxs],
+            "action": self.data["action"][idxs],
+            "next_obs": self.data["next_obs"][idxs],
+            "reward": self.data["reward"][idxs],
+            "terminal": self.data["terminal"][idxs],
+            "mask": self.data["mask"][idxs]
+        }
+
+    def create_sequential_iter(self):
+        assert self.mode == "transition" or (self.mode == "trajectory" and self.sample_full), \
+            "create_sequential_iter only supports 'transition' mode or 'trajectory' mode with sample_full=True"
+        
+        start, end = 0, min(self.batch_size, self.data_size)
+        while start < self.data_size:
+            idxs = list(range(start, min(end, self.data_size)))
+            yield self.sample_idx(idxs)
+            start += self.batch_size
+            end += self.batch_size
+
     def load_dataset(self):
         env = gym.make(self.env_name)
         dataset = env.get_dataset()

@@ -1,5 +1,5 @@
 algorithm:
-  class: OracleIQL
+  class: OracleAWAC
   beta: 0.3333
   max_exp_clip: 100.0
   # const_reward: 0.0

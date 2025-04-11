@@ -27,7 +27,14 @@ class OracleRM(Algorithm):
         self.reward_criterion = torch.nn.BCEWithLogitsLoss(reduction="none")
 
     def select_reward(self, batch, deterministic=False):
-        return torch.concat([batch["script_reward_1"], batch["script_reward_2"]], dim=0).detach()
+        if 'reward' in batch:
+            return batch["reward"].detach()
+        elif 'reward_1' in batch:
+            return torch.concat([batch["reward_1"], batch["reward_2"]], dim=0).detach()
+        elif 'script_reward_1' in batch:
+            return torch.concat([batch["script_reward_1"], batch["script_reward_2"]], dim=0).detach()
+        else:
+            raise NotImplementedError("Reward not found in batch")
     
     def select_action(self, batch, deterministic: bool=True):
         raise NotImplementedError

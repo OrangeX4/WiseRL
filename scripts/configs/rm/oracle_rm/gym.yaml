@@ -49,7 +49,7 @@ rl_dataloader:
 trainer:
   env_freq: null
   rm_label: true
-  rm_steps: 1000000
+  rm_steps: 200000
   rl_steps: 0
   log_freq: 500
   profile_freq: 500
@@ -63,6 +63,12 @@ rm_eval:
     batch_size: 64
     mode: <mode>
     eval: true
+  eval_offline_dataset_kwargs:
+    class: D4RLOfflineDataset
+    env: <env>
+    batch_size: 256
+    mode: trajectory
+    reward_normalize: true
 rl_eval:
   function: eval_offline
   num_ep: 10
