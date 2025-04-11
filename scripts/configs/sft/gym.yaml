@@ -17,6 +17,8 @@ env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
 
+mode: human
+
 optim:
   default:
     class: Adam
@@ -33,7 +35,7 @@ dataset:
     env: <env>
     batch_size: 64
     segment_length: null
-    mode: human
+    mode: <mode>
 dataloader:
   num_workers: 0  # use the main thread to sample data
   batch_size: null  # do not merge the data along batch axis

@@ -23,6 +23,8 @@ env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
 
+mode: human
+
 optim:
   default:
     class: Adam
@@ -59,7 +61,7 @@ rm_dataset:
     env: <env>
     batch_size: 64
     segment_length: null
-    mode: human
+    mode: <mode>
 rm_dataloader:
   num_workers: 2
   batch_size: null

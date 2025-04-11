@@ -31,6 +31,8 @@ env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
 
+mode: human
+
 optim:
   default:
     class: Adam
@@ -85,7 +87,7 @@ rm_dataset:
   - class: IPLComparisonOfflineDataset
     env: <env>
     batch_size: 8
-    mode: human
+    mode: <mode>
   - class: RobomimicDataset
     env: <env>
     batch_size: 256

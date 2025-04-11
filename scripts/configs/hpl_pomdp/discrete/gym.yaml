@@ -35,6 +35,8 @@ env_kwargs:
 env_wrapper:
 env_wrapper_kwargs:
 
+mode: human
+
 optim:
   default:
     class: Adam
@@ -91,7 +93,7 @@ rm_dataset:
   - class: IPLComparisonOfflineDataset
     env: <env>
     batch_size: 64
-    mode: human
+    mode: <mode>
   - class: D4RLOfflineDataset
     env: <env>
     batch_size: 512
