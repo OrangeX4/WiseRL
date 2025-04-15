@@ -104,3 +104,36 @@ def top_k_overlap_rate(pred_list, gt_list, percent=0.1):
     
     # Return ratio of overlap to the size of top k%
     return len(overlap) / k
+
+def spearman_rank_correlation(x, y):
+    """
+    Calculate Spearman's rank correlation coefficient between two lists.
+    
+    Args:
+        x: First list of values
+        y: Second list of values
+    
+    Returns:
+        float: Spearman's rank correlation coefficient between -1 and 1
+    """
+    if len(x) != len(y) or len(x) == 0:
+        raise ValueError("Input lists must have the same non-zero length")
+
+    n = len(x)
+    
+    # Convert values to ranks
+    x_array = np.array(x)
+    y_array = np.array(y)
+    
+    # argsort of argsort gives the ranks (0-based)
+    # Adding 1 to make it 1-based ranking
+    x_ranks = np.argsort(np.argsort(x_array)) + 1
+    y_ranks = np.argsort(np.argsort(y_array)) + 1
+    
+    # Calculate di^2
+    d_squared = np.sum((x_ranks - y_ranks) ** 2)
+    
+    # Apply Spearman's formula: rho = 1 - (6 * sum(d²) / (n³ - n))
+    rho = 1 - (6 * d_squared) / (n**3 - n)
+    
+    return rho

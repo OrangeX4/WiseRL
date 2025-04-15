@@ -8,7 +8,7 @@ import torch
 
 from wiserl.dataset import load_dataset
 from wiserl.algorithm.base import Algorithm
-from wiserl.utils.functional import order_consistency_rate, top_k_overlap_rate
+from wiserl.utils.functional import order_consistency_rate, spearman_rank_correlation, top_k_overlap_rate
 
 
 @torch.no_grad()
@@ -57,6 +57,7 @@ def eval_reward_model(
         gt_return = gt_return.reshape(-1).tolist()
         eval_offline_dataset_results = {
             "order_consistency_rate": order_consistency_rate(pred_return, gt_return),
+            "spearman_rank_correlation": spearman_rank_correlation(pred_return, gt_return),
             "top1%_overlap_rate": top_k_overlap_rate(pred_return, gt_return, percent=0.01),
             "top5%_overlap_rate": top_k_overlap_rate(pred_return, gt_return, percent=0.05),
             "top10%_overlap_rate": top_k_overlap_rate(pred_return, gt_return, percent=0.1),
