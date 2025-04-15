@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 
@@ -72,6 +73,8 @@ def count_inversions(A, B=None) -> int:
     return inversions
 
 def order_consistency_rate(A, B):
+    A = np.argsort(A)
+    B = np.argsort(B)
     return 1 - count_inversions(A, B) / (len(A) * (len(A) - 1) / 2)
 
 def top_k_overlap_rate(pred_list, gt_list, percent=0.1):
